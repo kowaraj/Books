@@ -1,1 +1,0 @@
-kowaraj@KowarakoT-2.local.71948

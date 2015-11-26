@@ -1,11 +1,101 @@
+(setq compilation-scroll-output t) 
+(setq mac-option-key-is-meta t)
+(setq mac-command-key-is-meta nil)
+(setq mac-command-modifier 'nil)
+(setq mac-option-modifier 'meta)
+(set-keyboard-coding-system nil)
+
+;; Ruby Eval, Ben Eills
+  (defun ruby-eval-region()
+      "Prints the evaluation of Ruby statements in region to a new output buffer"
+          (interactive)
+              (let ((output-buffer "Ruby Output"))
+                    (shell-command-on-region (mark) (point) "ruby" output-buffer)
+                          (switch-to-buffer output-buffer)))
+                            
+                              (defun ruby-pretty-print()
+                                  "Pretty prints the evaluation of a Ruby expression in region to a new output buffer"
+                                      (interactive)
+                                          (save-excursion
+                                                (let ((code (buffer-substring (mark) (point)))
+                                                        (code-buffer (generate-new-buffer "ruby-code")))
+                                                            (switch-to-buffer code-buffer)
+                                                                (insert (concat "require 'pp'\nputs (" code ")\n"))
+                                                                    (mark-whole-buffer)
+                                                                        (ruby-eval-region)
+                                                                            (kill-buffer code-buffer))))
+
+(require 'package) ;; You might already have this line
+(add-to-list 'package-archives
+             '("melpa" . "http://melpa.org/packages/") t)
+             (when (< emacs-major-version 24)
+               ;; For important compatibility libraries like cl-lib
+                 (add-to-list 'package-archives '("gnu" . "http://elpa.gnu.org/packages/")))
+                 (package-initialize) ;; You might already have this line
+
+(autoload 'inf-ruby-minor-mode "inf-ruby" "Run an inferior Ruby process" t)
+(add-hook 'ruby-mode-hook 'inf-ruby-minor-mode)
+
+;---
+; Ruby
+;---
+
+  (add-to-list 'auto-mode-alist
+                '("\\.\\(?:gemspec\\|irbrc\\|gemrc\\|rake\\|rb\\|ru\\|thor\\)\\'" . ruby-mode))
+                   (add-to-list 'auto-mode-alist
+                                  '("\\(Capfile\\|Gemfile\\(?:\\.[a-zA-Z0-9._-]+\\)?\\|[rR]akefile\\)\\'" . ruby-mode))
+
+;---
+; c++ autocompletion
+;---
+
+(add-to-list 'load-path "~/.emacs.d/")
+(require 'auto-complete-config)
+(add-to-list 'ac-dictionary-directories "~/.emacs.d//ac-dict")
+(ac-config-default)
+
 ;------------------------------
 ; General
 ;------------------------------
+(setq visible-bell t)
+
+(setq default-frame-alist '(
+    (width . 140)    
+    (height . 40) ))    
+
+(setq make-backup-files nil)
+(setq-default truncate-lines t)
 (setq x-select-enable-clipboard t) ; to enable system-COPY_PASTE
 (setq blink-matching-paren t)
 (show-paren-mode 1)
 (setq show-paren-delay 0)
 
+(global-set-key "%" 'match-paren)
+                    
+;; transparency
+;;(set-frame-parameter (selected-frame) 'alpha '(<active> [<inactive>]))
+(set-frame-parameter (selected-frame) 'alpha '(95 85))
+  (add-to-list 'default-frame-alist '(alpha 95 85))
+(eval-when-compile (require 'cl))
+ (defun toggle-transparency ()
+    (interactive)
+       (if (/=
+               (cadr (frame-parameter nil 'alpha))
+                       100)
+                              (set-frame-parameter nil 'alpha '(100 100))
+                                   (set-frame-parameter nil 'alpha '(85 50))))
+                                    (global-set-key (kbd "C-c t") 'toggle-transparency)
+
+;;
+
+
+(defun match-paren (arg)
+"Go to the matching paren if on a paren; otherwise insert %."
+(interactive "p")
+(cond ((looking-at "\\s\(") (forward-list 1) (backward-char 1))
+      ((looking-at "\\s\)") (forward-char 1) (backward-list 1))
+      (t (self-insert-command (or arg 1)))))
+  
 (global-set-key (kbd "C-?") 'help-command)
 (global-set-key (kbd "M-?") 'mark-pargraph)
 (global-set-key (kbd "C-h") 'delete-backward-char)
@@ -55,10 +145,13 @@
 (line-number-mode 1) ;;show line number in the statusbar
 
 
-(global-set-key (kbd "C-c <left>")  'windmove-left)
-(global-set-key (kbd "C-c <right>") 'windmove-right)
-(global-set-key (kbd "C-c <up>")    'windmove-up)
-(global-set-key (kbd "C-c <down>")  'windmove-down)
+;; (global-set-key (kbd "C-c <left>")  'windmove-left)
+;; (global-set-key (kbd "C-c <right>") 'windmove-right)
+;; (global-set-key (kbd "C-c <up>")    'windmove-up)
+;; (global-set-key (kbd "C-c <down>")  'windmove-down)
+(global-set-key (kbd "C-x p") 'previous-buffer)
+(global-set-key (kbd "C-x n") 'next-buffer)
+
 
 (setq frame-title-format
       (list (format "%s %%S: %%j " (system-name))
@@ -74,6 +167,29 @@
 (add-to-list 'auto-mode-alist '("\\.hpp\\'" . c++-mode))
 (add-to-list 'auto-mode-alist '("\\.cpp\\'" . c++-mode))
 (add-to-list 'auto-mode-alist '("\\.c\\'" . c++-mode))
+
+;; (defun my-c++-mode-hook ()
+;;   (setq c-basic-offset 4)
+;;   (c-set-offset 'substatement-open 0))
+;; (add-hook 'c++-mode-hook 'my-c++-mode-hook)
+
+(defun my-c-mode-common-hook ()
+ ;; my customizations for all of c-mode, c++-mode, objc-mode, java-mode
+ (c-set-offset 'substatement-open 0)
+ ;; other customizations can go here
+
+ (setq c++-tab-always-indent t)
+ (setq c-basic-offset 4)                  ;; Default is 2
+ (setq c-indent-level 4)                  ;; Default is 2
+
+ (setq tab-stop-list '(4 8 12 16 20 24 28 32 36 40 44 48 52 56 60))
+ (setq tab-width 4)
+ (setq indent-tabs-mode t)  ; use spaces only if nil
+ )
+
+(add-hook 'c-mode-common-hook 'my-c-mode-common-hook)
+
+
 
 ;------------------------------
 ; Octave
